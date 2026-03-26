@@ -1,4 +1,4 @@
-🔒 Bond — Programmable Escrow Layer for UPI
+# 🔒 Bond — Programmable Escrow Layer for UPI
 
 Bond is a programmable escrow infrastructure built on top of UPI that enables trustless peer-to-peer transactions.
 
@@ -6,7 +6,7 @@ It allows buyers and sellers to safely transact by locking funds in escrow and r
 
 Bond is designed for informal digital commerce — Reddit trades, freelancers, gaming accounts, and other P2P transactions where trust is limited.
 
-🧠 The Problem
+## 🧠 The Problem
 
 Peer-to-peer digital transactions in India are risky:
 
@@ -15,7 +15,8 @@ Seller delivers first → risk of non-payment
 No dispute mechanism
 No transaction visibility
 UPI supports instant payments but no conditional transfers
-💡 The Solution
+
+##💡 The Solution
 
 Bond introduces a programmable escrow layer on top of UPI:
 
@@ -47,7 +48,7 @@ CREATED → FUNDED → DELIVERED → CONFIRMED → RELEASED
 
 Each transition is validated and recorded for auditability and safety.
 
-🏗️ Architecture
+## 🏗️ Architecture
 Frontend (Static UI)
         │
         │ REST + SSE
@@ -61,7 +62,7 @@ Express API (Escrow Engine)
 
 Bond is designed as a modular monolith with an API-first approach.
 
-🔌 API Capabilities
+## 🔌 API Capabilities
 
 Bond exposes endpoints for:
 
@@ -75,7 +76,7 @@ Bond exposes endpoints for:
 
 This allows marketplaces and bots to integrate escrow directly.
 
-📡 Live Transaction Status
+## 📡 Live Transaction Status
 
 Bond uses Server-Sent Events (SSE) for real-time updates.
 
@@ -90,7 +91,7 @@ Both buyer and seller see:
 
 This creates transparency and trust.
 
-🧪 Example Flow
+## 🧪 Example Flow
 - Seller creates escrow for ₹3000
 - Buyer opens shared link
 - Buyer pays via UPI
@@ -99,22 +100,22 @@ This creates transparency and trust.
 - Buyer confirms
 - Funds released
 
-🎯 Use Cases
+## 🎯 Use Cases
 - Reddit / Discord marketplace trades
 - Gaming account sales
 - Freelance payments
 - Digital asset transfers
 - Informal P2P commerce
 - Small service agreements
-- 
-⚙️ Design Principles
+  
+## ⚙️ Design Principles
 - Works on top of existing UPI ecosystem
 - No mutual trust required
 - Shared transaction visibility
 - API-first infrastructure
 - Minimal friction (link-based)
   
-🚀 MVP Scope
+## 🚀 MVP Scope
 
 This MVP simulates:
 
@@ -129,7 +130,7 @@ The focus is demonstrating:
 - Real-time updates
 - API-first integration
   
-🌍 Vision
+## 🌍 Vision
 
 Bond aims to become a trust layer for India’s informal digital economy, enabling safe peer-to-peer transactions without requiring marketplaces to build escrow from scratch.
 
