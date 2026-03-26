@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Raise Dispute — Bond Escrow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/styles.css"/>
+</head>
+<body>
+  <nav class="navbar"><a href="index.html" class="brand">Bond</a></nav>
+  <main class="page-center">
+    <div class="card form-card">
+      <div class="state-badge badge-disputed">DISPUTED</div>
+      <h1 class="page-title">Raise a Dispute</h1>
+      <p class="page-sub">Funds remain locked in escrow while the dispute is reviewed. Provide as much detail as possible.</p>
+
+      <div class="summary-card">
+        <div class="summary-amount" id="amount">₹—</div>
+        <div class="summary-item" id="itemName">Loading…</div>
+        <div class="summary-row"><span>Escrow ID</span><span id="txnId">—</span></div>
+      </div>
+
+      <form id="disputeForm" class="escrow-form">
+        <div class="field-group">
+          <label for="disputeReason">Describe the Issue</label>
+          <textarea id="disputeReason" name="disputeReason" rows="4" placeholder="What went wrong? Describe in detail…" required></textarea>
+        </div>
+        <div class="field-group">
+          <label>Evidence (optional — upload in full version)</label>
+          <div class="file-upload-placeholder">📎 Attach photos or receipts</div>
+        </div>
+        <div id="formError" class="form-error hidden"></div>
+        <button type="submit" class="btn-primary btn-full btn-lg">Submit Dispute</button>
+      </form>
+
+      <div id="successMsg" class="hidden">
+        <div class="success-icon">⚠️</div>
+        <h2>Dispute Submitted</h2>
+        <p>Your dispute is under review. Funds remain locked. You'll be notified of the outcome.</p>
+        <a id="statusBtn" href="#" class="btn-primary btn-full">View Transaction →</a>
+      </div>
+    </div>
+  </main>
+  <script>
+    const API = 'http://localhost:3001';
+    const id = new URLSearchParams(location.search).get('id')?.toUpperCase();
+
+    async function load() {
+      if (!id) return;
+      const res = await fetch(`${API}/api/escrow/${id}`);
+      const txn = await res.json();
+      document.getElementById('amount').textContent = `₹${txn.amountINR.toLocaleString('en-IN')}`;
+      document.getElementById('itemName').textContent = txn.itemName;
+      document.getElementById('txnId').textContent = txn.id;
+      document.getElementById('statusBtn').href = `status.html?id=${txn.id}`;
+    }
+
+    document.getElementById('disputeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.textContent = 'Submitting…'; btn.disabled = true;
+      const res = await fetch(`${API}/api/escrow/${id}/dispute`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disputeReason: document.getElementById('disputeReason').value })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        document.getElementById('disputeForm').classList.add('hidden');
+        document.getElementById('successMsg').classList.remove('hidden');
+      } else {
+        document.getElementById('formError').textContent = data.error;
+        document.getElementById('formError').classList.remove('hidden');
+        btn.textContent = 'Submit Dispute'; btn.disabled = false;
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>

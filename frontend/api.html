@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>API Reference — Bond Escrow</title>
+  <meta name="description" content="Bond Escrow REST API for marketplaces. Integrate escrow into Reddit, Discord, or any platform."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/styles.css"/>
+</head>
+<body>
+  <nav class="navbar"><a href="index.html" class="brand">Bond</a><a href="create.html" class="btn-primary nav-cta">Create Escrow</a></nav>
+
+  <main class="api-page">
+    <div class="api-hero">
+      <h1>API Reference</h1>
+      <p>Integrate Bond escrow into any marketplace, Discord bot, or Reddit community.</p>
+      <div class="api-base">Base URL: <code>http://localhost:3001</code></div>
+    </div>
+
+    <div class="api-grid">
+      <aside class="api-nav">
+        <ul>
+          <li><a href="#create">Create Escrow</a></li>
+          <li><a href="#get">Get Transaction</a></li>
+          <li><a href="#pay">Simulate Payment</a></li>
+          <li><a href="#deliver">Mark Delivery</a></li>
+          <li><a href="#confirm">Confirm Receipt</a></li>
+          <li><a href="#dispute">Raise Dispute</a></li>
+          <li><a href="#resolve">Resolve Dispute</a></li>
+          <li><a href="#stream">Live Updates (SSE)</a></li>
+        </ul>
+      </aside>
+
+      <div class="api-content">
+        <section id="create" class="api-section">
+          <div class="method-badge badge-post">POST</div>
+          <code class="endpoint">/api/escrow</code>
+          <p>Create a new escrow transaction. Returns the escrow ID and a shareable link.</p>
+          <pre class="code-block">{
+  "itemName": "MacBook Pro",
+  "description": "2023 model, M3",
+  "amountINR": 120000,
+  "sellerUpiId": "seller@upi",
+  "buyerEmail": "buyer@email.com",
+  "expiryHours": 48
+}</pre>
+        </section>
+
+        <section id="get" class="api-section">
+          <div class="method-badge badge-get">GET</div>
+          <code class="endpoint">/api/escrow/:id</code>
+          <p>Fetch full transaction details including state, history, and parties.</p>
+        </section>
+
+        <section id="pay" class="api-section">
+          <div class="method-badge badge-post">POST</div>
+          <code class="endpoint">/api/escrow/:id/pay</code>
+          <p>Simulate a UPI payment. Transitions state CREATED → FUNDED.</p>
+        </section>
+
+        <section id="deliver" class="api-section">
+          <div class="method-badge badge-post">POST</div>
+          <code class="endpoint">/api/escrow/:id/deliver</code>
+          <p>Seller confirms delivery. Transitions FUNDED → DELIVERED.</p>
+          <pre class="code-block">{ "deliveryNote": "Shipped via Delhivery, tracking #XYZ" }</pre>
+        </section>
+
+        <section id="confirm" class="api-section">
+          <div class="method-badge badge-post">POST</div>
+          <code class="endpoint">/api/escrow/:id/confirm</code>
+          <p>Buyer confirms receipt. Auto-progresses DELIVERED → CONFIRMED → RELEASED and triggers fund release.</p>
+        </section>
+
+        <section id="dispute" class="api-section">
+          <div class="method-badge badge-post">POST</div>
+          <code class="endpoint">/api/escrow/:id/dispute</code>
+          <p>Buyer raises a dispute. Transitions DELIVERED → DISPUTED. Funds remain locked.</p>
+          <pre class="code-block">{ "disputeReason": "Item not as described" }</pre>
+        </section>
+
+        <section id="resolve" class="api-section">
+          <div class="method-badge badge-post">POST</div>
+          <code class="endpoint">/api/escrow/:id/resolve</code>
+          <p>Admin resolves a dispute (mocked). DISPUTED → RESOLVED.</p>
+        </section>
+
+        <section id="stream" class="api-section">
+          <div class="method-badge badge-get">GET</div>
+          <code class="endpoint">/api/escrow/:id/stream</code>
+          <p>Server-Sent Events stream for live transaction state updates. Connect from the frontend to get real-time state changes.</p>
+          <pre class="code-block">const es = new EventSource('/api/escrow/TXN123/stream');
+es.onmessage = (e) => {
+  const { type, transaction } = JSON.parse(e.data);
+  console.log(transaction.state); // 'FUNDED', 'DELIVERED', etc.
+};</pre>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

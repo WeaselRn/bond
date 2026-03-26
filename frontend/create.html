@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Escrow — Bond</title>
+  <meta name="description" content="Create a secure UPI escrow transaction. Share a link with the buyer and lock funds until delivery is confirmed." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <a href="index.html" class="brand">Bond</a>
+  </nav>
+
+  <main class="page-center">
+    <div class="card form-card">
+      <div class="state-badge badge-created">CREATED</div>
+      <h1 class="page-title">Create New Escrow</h1>
+      <p class="page-sub">Fill in the deal details. A secure link will be generated for the buyer.</p>
+
+      <form id="createForm" class="escrow-form">
+        <div class="field-group">
+          <label for="itemName">Item / Service Name</label>
+          <input type="text" id="itemName" name="itemName" placeholder="e.g. MacBook Pro 14-inch" required />
+        </div>
+        <div class="field-group">
+          <label for="description">Description (optional)</label>
+          <textarea id="description" name="description" rows="2" placeholder="Additional details about the deal…"></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label for="amountINR">Amount (₹)</label>
+            <input type="number" id="amountINR" name="amountINR" placeholder="0" min="1" required />
+          </div>
+          <div class="field-group">
+            <label for="expiryHours">Expiry (hours)</label>
+            <input type="number" id="expiryHours" name="expiryHours" value="48" min="1" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="sellerUpiId">Your UPI ID</label>
+          <input type="text" id="sellerUpiId" name="sellerUpiId" placeholder="yourname@upi" required />
+        </div>
+        <div class="field-group">
+          <label for="buyerEmail">Buyer's Email (optional)</label>
+          <input type="email" id="buyerEmail" name="buyerEmail" placeholder="buyer@email.com" />
+        </div>
+        <div id="formError" class="form-error hidden"></div>
+        <button type="submit" class="btn-primary btn-lg btn-full" id="submitBtn">
+          <span id="btnText">Create Escrow & Generate Link</span>
+          <span id="btnSpinner" class="hidden">Creating…</span>
+        </button>
+      </form>
+
+      <!-- Result section (hidden until success) -->
+      <div id="resultSection" class="result-section hidden">
+        <div class="success-icon">✅</div>
+        <h2>Escrow Created!</h2>
+        <p class="result-sub">Share this link with your buyer. They'll pay via UPI into the escrow.</p>
+        <div class="link-box">
+          <span id="escrowLink" class="link-text"></span>
+          <button class="btn-copy" id="copyBtn" onclick="copyLink()">Copy</button>
+        </div>
+        <div class="share-row">
+          <a id="waShare" href="#" target="_blank" class="share-icon" title="Share on WhatsApp">💬 WhatsApp</a>
+          <button class="share-icon" onclick="copyLink()">🔗 Copy Link</button>
+        </div>
+        <a id="viewStatusBtn" href="#" class="btn-secondary btn-full">View Transaction Status →</a>
+      </div>
+
+      <!-- State stepper -->
+      <div class="stepper" id="stepper">
+        <div class="step active" data-state="CREATED">CREATED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="FUNDED">FUNDED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="DELIVERED">DELIVERED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="CONFIRMED">CONFIRMED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="RELEASED">RELEASED</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/app.js"></script>
+  <script>
+    const API = 'http://localhost:3001';
+    let escrowId = null;
+
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      document.getElementById('btnText').classList.add('hidden');
+      document.getElementById('btnSpinner').classList.remove('hidden');
+      btn.disabled = true;
+
+      const body = {
+        itemName: document.getElementById('itemName').value,
+        description: document.getElementById('description').value,
+        amountINR: document.getElementById('amountINR').value,
+        sellerUpiId: document.getElementById('sellerUpiId').value,
+        buyerEmail: document.getElementById('buyerEmail').value,
+        expiryHours: document.getElementById('expiryHours').value,
+      };
+
+      try {
+        const res = await fetch(`${API}/api/escrow`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        escrowId = data.transaction.id;
+        const link = `${window.location.origin}/status.html?id=${escrowId}`;
+
+        document.getElementById('createForm').classList.add('hidden');
+        document.getElementById('resultSection').classList.remove('hidden');
+        document.getElementById('escrowLink').textContent = link;
+        document.getElementById('waShare').href = `https://wa.me/?text=${encodeURIComponent('Hey! I created a secure escrow for our deal on Bond. Pay here: ' + link)}`;
+        document.getElementById('viewStatusBtn').href = `status.html?id=${escrowId}`;
+      } catch (err) {
+        document.getElementById('formError').textContent = err.message;
+        document.getElementById('formError').classList.remove('hidden');
+        document.getElementById('btnText').classList.remove('hidden');
+        document.getElementById('btnSpinner').classList.add('hidden');
+        btn.disabled = false;
+      }
+    });
+
+    function copyLink() {
+      const link = document.getElementById('escrowLink').textContent;
+      navigator.clipboard.writeText(link).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      });
+    }
+  </script>
+</body>
+</html>

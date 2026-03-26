@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transaction Status — Bond Escrow</title>
+  <meta name="description" content="Live escrow transaction status. Track every state from CREATED to RELEASED." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <nav class="navbar"><a href="index.html" class="brand">Bond</a></nav>
+
+  <main class="page-center">
+    <div class="card status-card">
+      <div class="live-indicator"><span class="live-dot live-green"></span> Live</div>
+      <div id="stateBadge" class="state-badge badge-created">—</div>
+      <div class="summary-amount" id="amount">₹—</div>
+      <div class="summary-item" id="itemName">Loading transaction…</div>
+
+      <div class="summary-card">
+        <div class="summary-row"><span>Escrow ID</span><span id="txnId">—</span></div>
+        <div class="summary-row"><span>Seller UPI</span><span id="sellerUpi">—</span></div>
+        <div class="summary-row"><span>Created</span><span id="createdAt">—</span></div>
+        <div class="summary-row"><span>Last Updated</span><span id="updatedAt">—</span></div>
+      </div>
+
+      <!-- Vertical timeline -->
+      <div class="timeline" id="timeline">
+        <div class="tl-item" id="tl-CREATED">
+          <div class="tl-dot"></div>
+          <div class="tl-line"></div>
+          <div class="tl-content"><div class="tl-label">CREATED</div><div class="tl-time" id="ts-CREATED"></div></div>
+        </div>
+        <div class="tl-item" id="tl-FUNDED">
+          <div class="tl-dot"></div>
+          <div class="tl-line"></div>
+          <div class="tl-content"><div class="tl-label">FUNDED</div><div class="tl-time" id="ts-FUNDED"></div></div>
+        </div>
+        <div class="tl-item" id="tl-DELIVERED">
+          <div class="tl-dot"></div>
+          <div class="tl-line"></div>
+          <div class="tl-content"><div class="tl-label">DELIVERED</div><div class="tl-time" id="ts-DELIVERED"></div></div>
+        </div>
+        <div class="tl-item" id="tl-CONFIRMED">
+          <div class="tl-dot"></div>
+          <div class="tl-line"></div>
+          <div class="tl-content"><div class="tl-label">CONFIRMED</div><div class="tl-time" id="ts-CONFIRMED"></div></div>
+        </div>
+        <div class="tl-item" id="tl-RELEASED">
+          <div class="tl-dot"></div>
+          <div class="tl-line"></div>
+          <div class="tl-content"><div class="tl-label">RELEASED</div><div class="tl-time" id="ts-RELEASED"></div></div>
+        </div>
+        <!-- Dispute branch -->
+        <div class="tl-item tl-dispute" id="tl-DISPUTED">
+          <div class="tl-dot tl-dot-amber"></div>
+          <div class="tl-line"></div>
+          <div class="tl-content"><div class="tl-label">DISPUTED</div><div class="tl-time" id="ts-DISPUTED"></div></div>
+        </div>
+        <div class="tl-item tl-dispute" id="tl-RESOLVED">
+          <div class="tl-dot tl-dot-amber"></div>
+          <div class="tl-line"></div>
+          <div class="tl-content"><div class="tl-label">RESOLVED</div><div class="tl-time" id="ts-RESOLVED"></div></div>
+        </div>
+      </div>
+
+      <!-- Contextual action buttons -->
+      <div id="actions" class="action-row hidden">
+        <a id="confirmBtn" href="#" class="btn-primary hidden">Confirm Receipt ✓</a>
+        <a id="disputeBtn" href="#" class="btn-amber hidden">Raise Dispute ⚠</a>
+        <a id="deliverBtn" href="#" class="btn-primary hidden">Mark as Delivered</a>
+      </div>
+
+      <!-- Released banner -->
+      <div id="releasedBanner" class="released-banner hidden">
+        🎉 Funds Released to Seller!
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/app.js"></script>
+  <script>
+    const API = 'http://localhost:3001';
+    const id = new URLSearchParams(location.search).get('id')?.toUpperCase();
+
+    const STATE_ORDER = ['CREATED','FUNDED','DELIVERED','CONFIRMED','RELEASED'];
+    const BADGE_MAP = { CREATED:'badge-created', FUNDED:'badge-funded', DELIVERED:'badge-delivered', CONFIRMED:'badge-confirmed', RELEASED:'badge-released', DISPUTED:'badge-disputed', RESOLVED:'badge-resolved' };
+
+    function applyTxn(txn) {
+      document.getElementById('amount').textContent = `₹${txn.amountINR.toLocaleString('en-IN')}`;
+      document.getElementById('itemName').textContent = txn.itemName;
+      document.getElementById('txnId').textContent = txn.id;
+      document.getElementById('sellerUpi').textContent = txn.sellerUpiId;
+      document.getElementById('createdAt').textContent = new Date(txn.createdAt).toLocaleString();
+      document.getElementById('updatedAt').textContent = new Date(txn.updatedAt).toLocaleString();
+
+      const badge = document.getElementById('stateBadge');
+      badge.textContent = txn.state;
+      badge.className = `state-badge ${BADGE_MAP[txn.state] || ''}`;
+
+      // Timeline timestamps
+      txn.history.forEach(h => {
+        const ts = document.getElementById(`ts-${h.state}`);
+        const dot = document.getElementById(`tl-${h.state}`)?.querySelector('.tl-dot');
+        if (ts) ts.textContent = new Date(h.at).toLocaleTimeString();
+        if (dot) dot.classList.add('tl-dot-done');
+      });
+
+      // Mark current state
+      const cur = document.getElementById(`tl-${txn.state}`);
+      if (cur) cur.querySelector('.tl-dot').classList.add('tl-dot-active');
+
+      // Actions
+      const actions = document.getElementById('actions');
+      const confirmBtn = document.getElementById('confirmBtn');
+      const disputeBtn = document.getElementById('disputeBtn');
+      const deliverBtn = document.getElementById('deliverBtn');
+
+      actions.classList.remove('hidden');
+      confirmBtn.href = `confirm.html?id=${txn.id}`;
+      disputeBtn.href = `dispute.html?id=${txn.id}`;
+      deliverBtn.href = `deliver.html?id=${txn.id}`;
+
+      [confirmBtn, disputeBtn, deliverBtn].forEach(b => b.classList.add('hidden'));
+
+      if (txn.state === 'DELIVERED') {
+        confirmBtn.classList.remove('hidden');
+        disputeBtn.classList.remove('hidden');
+      } else if (txn.state === 'FUNDED') {
+        deliverBtn.classList.remove('hidden');
+      } else {
+        actions.classList.add('hidden');
+      }
+
+      if (txn.state === 'RELEASED') {
+        actions.classList.add('hidden');
+        document.getElementById('releasedBanner').classList.remove('hidden');
+      }
+    }
+
+    async function loadTxn() {
+      if (!id) return;
+      const res = await fetch(`${API}/api/escrow/${id}`);
+      const txn = await res.json();
+      applyTxn(txn);
+    }
+
+    if (id) {
+      const es = new EventSource(`${API}/api/escrow/${id}/stream`);
+      es.onmessage = (e) => { const { transaction } = JSON.parse(e.data); applyTxn(transaction); };
+    }
+
+    loadTxn();
+  </script>
+</body>
+</html>

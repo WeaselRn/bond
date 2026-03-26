@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment — Bond Escrow</title>
+  <meta name="description" content="Pay via UPI into the escrow. Funds are locked and released only when you confirm receipt." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <nav class="navbar"><a href="index.html" class="brand">Bond</a></nav>
+
+  <main class="page-center">
+    <div class="card form-card">
+      <div id="stateBadge" class="state-badge badge-created">CREATED</div>
+      <h1 class="page-title">Pay into Escrow</h1>
+
+      <!-- Escrow summary card -->
+      <div class="summary-card" id="summaryCard">
+        <div class="summary-amount" id="summaryAmount">₹—</div>
+        <div class="summary-item" id="summaryItem">Loading…</div>
+        <div class="summary-row">
+          <span>Escrow ID</span><span id="summaryId">—</span>
+        </div>
+        <div class="summary-row">
+          <span>Seller UPI</span><span id="summaryUpi">—</span>
+        </div>
+      </div>
+
+      <!-- UPI payment section -->
+      <div class="upi-section" id="upiSection">
+        <div class="qr-placeholder">
+          <div class="qr-inner">
+            <div class="qr-label">Scan with UPI app</div>
+            <div class="qr-logo">🔒</div>
+            <div class="qr-upi">bond-escrow@ybl</div>
+          </div>
+        </div>
+        <div class="upi-id-row">
+          <span class="upi-id">bond-escrow@ybl</span>
+          <button class="btn-copy" onclick="copyUpi()">Copy</button>
+        </div>
+        <a id="deeplink" href="upi://pay?pa=bond-escrow@ybl&pn=Bond+Escrow&am=0&tn=EscrowPayment" class="btn-primary btn-full btn-lg">
+          Pay with UPI App
+        </a>
+        <div class="live-status" id="liveStatus">
+          <span class="live-dot"></span> Waiting for payment…
+        </div>
+        <button class="btn-secondary btn-full" id="manualPayBtn">I've Paid (Demo)</button>
+        <p class="security-note">🔒 Funds are held in escrow — released only when you confirm receipt</p>
+      </div>
+
+      <!-- FUNDED confirmation -->
+      <div class="funded-notice hidden" id="fundedNotice">
+        <div class="notice-icon">✅</div>
+        <h2>Payment Confirmed!</h2>
+        <p>Your payment is locked in escrow. The seller has been notified to deliver.</p>
+        <a id="statusBtn" href="#" class="btn-primary btn-full btn-lg">View Transaction Status →</a>
+      </div>
+
+      <div class="stepper" id="stepper">
+        <div class="step" data-state="CREATED">CREATED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="FUNDED">FUNDED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="DELIVERED">DELIVERED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="CONFIRMED">CONFIRMED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="RELEASED">RELEASED</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/app.js"></script>
+  <script>
+    const API = 'http://localhost:3001';
+    const id = new URLSearchParams(location.search).get('id')?.toUpperCase();
+
+    async function loadTxn() {
+      if (!id) { document.getElementById('summaryItem').textContent = 'No transaction ID.'; return; }
+      const res = await fetch(`${API}/api/escrow/${id}`);
+      const txn = await res.json();
+      applyTxn(txn);
+    }
+
+    function applyTxn(txn) {
+      document.getElementById('summaryAmount').textContent = `₹${txn.amountINR.toLocaleString('en-IN')}`;
+      document.getElementById('summaryItem').textContent = txn.itemName;
+      document.getElementById('summaryId').textContent = txn.id;
+      document.getElementById('summaryUpi').textContent = txn.sellerUpiId;
+      document.getElementById('deeplink').href = `upi://pay?pa=bond-escrow@ybl&pn=Bond+Escrow&am=${txn.amountINR}&tn=Escrow-${txn.id}`;
+      document.getElementById('statusBtn').href = `status.html?id=${txn.id}`;
+      updateStepperState(txn.state);
+
+      if (txn.state === 'FUNDED' || txn.state !== 'CREATED') {
+        showFunded();
+      }
+    }
+
+    function showFunded() {
+      document.getElementById('upiSection').classList.add('hidden');
+      document.getElementById('fundedNotice').classList.remove('hidden');
+      document.getElementById('stateBadge').textContent = 'FUNDED';
+      document.getElementById('stateBadge').className = 'state-badge badge-funded';
+      document.getElementById('liveStatus').innerHTML = '<span class="live-dot live-green"></span> Payment Confirmed ✓';
+    }
+
+    document.getElementById('manualPayBtn').addEventListener('click', async () => {
+      const res = await fetch(`${API}/api/escrow/${id}/pay`, { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) showFunded();
+    });
+
+    function copyUpi() { navigator.clipboard.writeText('bond-escrow@ybl'); }
+
+    // SSE
+    if (id) {
+      const es = new EventSource(`${API}/api/escrow/${id}/stream`);
+      es.onmessage = (e) => {
+        const { transaction } = JSON.parse(e.data);
+        applyTxn(transaction);
+      };
+    }
+
+    loadTxn();
+  </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mark Delivery — Bond Escrow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <nav class="navbar"><a href="index.html" class="brand">Bond</a></nav>
+  <main class="page-center">
+    <div class="card form-card">
+      <div class="state-badge badge-funded">FUNDED</div>
+      <h1 class="page-title">Mark as Delivered</h1>
+      <p class="page-sub">Confirm that you have fulfilled the order. The buyer will be asked to confirm receipt.</p>
+
+      <div class="summary-card" id="summaryCard">
+        <div class="summary-amount" id="amount">₹—</div>
+        <div class="summary-item" id="itemName">Loading…</div>
+        <div class="summary-row"><span>Buyer</span><span id="buyerEmail">—</span></div>
+        <div class="summary-row"><span>Escrow ID</span><span id="txnId">—</span></div>
+      </div>
+
+      <form id="deliverForm" class="escrow-form">
+        <div class="field-group">
+          <label for="deliveryNote">Delivery Note</label>
+          <textarea id="deliveryNote" name="deliveryNote" rows="3" placeholder="Describe how you fulfilled this order or provide tracking info…"></textarea>
+        </div>
+        <div id="formError" class="form-error hidden"></div>
+        <button type="submit" class="btn-primary btn-full btn-lg" id="submitBtn">Mark as Delivered</button>
+      </form>
+
+      <div id="successMsg" class="hidden">
+        <div class="success-icon">✅</div>
+        <h2>Delivery Confirmed!</h2>
+        <p>The buyer has been notified to confirm receipt. Funds will be released once they confirm.</p>
+        <a id="statusBtn" href="#" class="btn-primary btn-full">View Status →</a>
+      </div>
+
+      <p class="security-note">⚠️ Once marked as delivered, the buyer will be asked to confirm. Funds release requires buyer confirmation.</p>
+
+      <div class="stepper">
+        <div class="step done" data-state="CREATED">CREATED</div>
+        <div class="step-line done-line"></div>
+        <div class="step active" data-state="FUNDED">FUNDED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="DELIVERED">DELIVERED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="CONFIRMED">CONFIRMED</div>
+        <div class="step-line"></div>
+        <div class="step" data-state="RELEASED">RELEASED</div>
+      </div>
+    </div>
+  </main>
+  <script>
+    const API = 'http://localhost:3001';
+    const id = new URLSearchParams(location.search).get('id')?.toUpperCase();
+
+    async function load() {
+      if (!id) return;
+      const res = await fetch(`${API}/api/escrow/${id}`);
+      const txn = await res.json();
+      document.getElementById('amount').textContent = `₹${txn.amountINR.toLocaleString('en-IN')}`;
+      document.getElementById('itemName').textContent = txn.itemName;
+      document.getElementById('buyerEmail').textContent = txn.buyerEmail || 'Not provided';
+      document.getElementById('txnId').textContent = txn.id;
+      document.getElementById('statusBtn').href = `status.html?id=${txn.id}`;
+    }
+
+    document.getElementById('deliverForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.textContent = 'Confirming…'; btn.disabled = true;
+      const res = await fetch(`${API}/api/escrow/${id}/deliver`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveryNote: document.getElementById('deliveryNote').value })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        document.getElementById('deliverForm').classList.add('hidden');
+        document.getElementById('successMsg').classList.remove('hidden');
+      } else {
+        document.getElementById('formError').textContent = data.error;
+        document.getElementById('formError').classList.remove('hidden');
+        btn.textContent = 'Mark as Delivered'; btn.disabled = false;
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>
