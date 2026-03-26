@@ -16,7 +16,7 @@ No dispute mechanism
 No transaction visibility
 UPI supports instant payments but no conditional transfers
 
-##💡 The Solution
+## 💡 The Solution
 
 Bond introduces a programmable escrow layer on top of UPI:
 
@@ -43,15 +43,17 @@ Core Features
 
 Bond is built around a deterministic escrow state machine:
 
-CREATED → FUNDED → DELIVERED → CONFIRMED → RELEASED
-                 ↘ DISPUTED → RESOLVED
+``` CREATED → FUNDED → DELIVERED → CONFIRMED → RELEASED ```
+
+If there are disputes, ``` DELIVERED → DISPUTED → RESOLVED ```
 
 Each transition is validated and recorded for auditability and safety.
 
 ## 🏗️ Architecture
+```text
 Frontend (Static UI)
         │
-        │ REST + SSE
+        │  REST + SSE
         ▼
 Express API (Escrow Engine)
         │
@@ -59,6 +61,7 @@ Express API (Escrow Engine)
         ├── Escrow Logic
         ├── Dispute Handling
         └── SSE Broadcaster
+```
 
 Bond is designed as a modular monolith with an API-first approach.
 
